@@ -1,5 +1,5 @@
 # DesignPattern
 ## Add package from git URL
 ```
-https://github.com/Ciza2596/DesignPattern.git?path=Assets/DesignPattern
+https://github.com/Ciza2596/DesignPattern.git?path=Assets/_Project/DesignPattern
 ```
