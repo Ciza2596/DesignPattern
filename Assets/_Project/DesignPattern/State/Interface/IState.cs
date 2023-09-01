@@ -1,9 +1,9 @@
 namespace DesignPattern
 {
-    public interface IState
-    {
-        void OnEnter();
-        void OnUpdate(float delta);
-        void OnLeave();
-    }
+	public interface IState
+	{
+		void OnEnter();
+		void OnTick(float deltaTime);
+		void OnLeave();
+	}
 }

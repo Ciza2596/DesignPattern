@@ -4,97 +4,95 @@ using UnityEngine.Assertions;
 
 namespace DesignPattern
 {
-    public class StateMachine : IStateMachine
-    {
-        //private variable
-        private IState _currentState;
-        private IState _previousState;
+	public sealed class StateMachine : IStateMachine
+	{
+		// private variable
+		private IState _currentState;
+		private IState _previousState;
 
-        private Dictionary<Type, IState> _states = new Dictionary<Type, IState>();
+		private readonly Dictionary<Type, IState> _stateMap = new Dictionary<Type, IState>();
 
-        //public variable
-        public int StateCount => _states.Count;
+		// public variable
+		public int StateCount => _stateMap.Count;
 
-        //public method
-        ~StateMachine()
-        {
-            _currentState = null;
-            _previousState = null;
+		// public method
+		public bool CheckHasState<T>() where T : IState =>
+			_stateMap.ContainsKey(typeof(T));
 
-            _states.Clear();
-            _states = null;
-        }
+		public bool CheckIsCurrentState<T>() where T : IState =>
+			_currentState is T;
 
-        public virtual void AddState<T>(IState state)
-        {
-            var type = typeof(T);
-            Assert.IsFalse(_states.ContainsKey(type),
-                $"[StateMachine::AddState] Duplicate state type {type}.");
-            _states.Add(type, state);
-        }
+		public T GetState<T>() where T : IState
+		{
+			var type = typeof(T);
+			Assert.IsTrue(_stateMap.ContainsKey(type), $"[StateMachine::GetState] State is not in state machine {type}.");
 
-        public virtual void RemoveState<T>(IState state)
-        {
-            var type = typeof(T);
-            Assert.IsTrue(_states.ContainsKey(type), $"[StateMachine::RemoveState] State is not in state machine {type}.");
-            _states.Remove(type);
-        }
+			return (T)_stateMap[type];
+		}
 
-        public virtual void OnUpdate(float delta)
-        {
-            _currentState?.OnUpdate(delta);
-        }
+		public bool TryGetCurrentState<T>(out T currentState) where T : IState
+		{
+			if (_currentState == null)
+			{
+				currentState = default;
+				return false;
+			}
 
-        public virtual void Clear() => _states.Clear();
+			currentState = (T)_currentState;
+			return true;
+		}
 
-        public virtual void ChangeState<T>() where T : IState
-        {
-            if (_currentState != null)
-            {
-                _currentState.OnLeave();
-                _previousState = _currentState;
-            }
+		public bool GetPreviousState<T>(out T previousState) where T : IState
+		{
+			if (_previousState == null)
+			{
+				previousState = default;
+				return false;
+			}
 
-            var type = typeof(T);
-            Assert.IsTrue(HasState<T>(), $"[StateMachine::ChangeState] State is not in state machine {type}.");
-            
-            _currentState.OnEnter();
-        }
+			previousState = (T)_previousState;
+			return true;
+		}
 
+		public void AddState<T>(IState state)
+		{
+			var type = typeof(T);
+			Assert.IsFalse(_stateMap.ContainsKey(type),
+			               $"[StateMachine::AddState] Duplicate state type {type}.");
+			_stateMap.Add(type, state);
+		}
 
-        public T GetState<T>() where T : IState
-        {
-            var type = typeof(T);
-            Assert.IsTrue(_states.ContainsKey(type),
-                $"[StateMachine::GetState] State is not in state machine {type}.");
+		public void RemoveState<T>(IState state)
+		{
+			var type = typeof(T);
+			Assert.IsTrue(_stateMap.ContainsKey(type), $"[StateMachine::RemoveState] State is not in state machine {type}.");
+			_stateMap.Remove(type);
+		}
 
-            return (T)_states[type];
-        }
+		public void OnTick(float deltaTime) =>
+			_currentState?.OnTick(deltaTime);
 
+		public void Release()
+		{
+			_currentState  = null;
+			_previousState = null;
 
-        public bool HasState<T>() where T : IState
-        {
-            return _states.ContainsKey(typeof(T));
-        }
+			_stateMap.Clear();
+		}
 
+		public void ChangeState<T>() where T : IState
+		{
+			if (_currentState != null)
+			{
+				_currentState.OnLeave();
+				_previousState = _currentState;
+			}
 
-        public bool IsCurrentState<T>() where T : IState
-        {
-            return _currentState is T;
-        }
+			var type = typeof(T);
+			Assert.IsTrue(CheckHasState<T>(), $"[StateMachine::ChangeState] State is not in state machine {type}.");
 
-        public T GetCurrentState<T>() where T : IState
-        {
-            Assert.IsNotNull(_currentState,
-                $"[StateMachine::GetPreviousState] Hasnt previous state {typeof(T)}.");
-            return (T)_currentState;
-        }
-
-        public T GetPreviousState<T>() where T : IState
-        {
-            Assert.IsNotNull(_previousState,
-                $"[StateMachine::GetPreviousState] Hasnt previous state {typeof(T)}.");
-            return (T)_previousState;
-        }
-    }
+			_currentState = GetState<T>();
+			_currentState.OnEnter();
+		}
+	}
 }
