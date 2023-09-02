@@ -47,7 +47,7 @@ namespace DesignPattern
                     _currentTask.Start();
                 }
 
-                TaskStates taskState = await _currentTask?.Update();
+                var taskState = await _currentTask?.Update();
 
                 if (taskState == TaskStates.Success)
                 {

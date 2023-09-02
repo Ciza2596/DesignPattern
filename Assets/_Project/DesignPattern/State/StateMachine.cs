@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
 using UnityEngine.Assertions;
 
 namespace DesignPattern
@@ -16,13 +18,13 @@ namespace DesignPattern
 		public int StateCount => _stateMap.Count;
 
 		// public method
-		public bool CheckHasState<T>() where T : IState =>
+		public bool CheckHasState<T>() =>
 			_stateMap.ContainsKey(typeof(T));
 
-		public bool CheckIsCurrentState<T>() where T : IState =>
+		public bool CheckIsCurrentState<T>() =>
 			_currentState is T;
 
-		public T GetState<T>() where T : IState
+		public T GetState<T>() where T : class
 		{
 			var type = typeof(T);
 			Assert.IsTrue(_stateMap.ContainsKey(type), $"[StateMachine::GetState] State is not in state machine {type}.");
@@ -30,7 +32,7 @@ namespace DesignPattern
 			return (T)_stateMap[type];
 		}
 
-		public bool TryGetCurrentState<T>(out T currentState) where T : IState
+		public bool TryGetCurrentState<T>(out T currentState) where T : class
 		{
 			if (_currentState == null)
 			{
@@ -42,7 +44,7 @@ namespace DesignPattern
 			return true;
 		}
 
-		public bool GetPreviousState<T>(out T previousState) where T : IState
+		public bool GetPreviousState<T>(out T previousState) where T : class
 		{
 			if (_previousState == null)
 			{
@@ -56,13 +58,20 @@ namespace DesignPattern
 
 		public void AddState<T>(IState state)
 		{
-			var type = typeof(T);
-			Assert.IsFalse(_stateMap.ContainsKey(type),
-			               $"[StateMachine::AddState] Duplicate state type {type}.");
-			_stateMap.Add(type, state);
+			var registeredType = typeof(T);
+			Assert.IsFalse(_stateMap.ContainsKey(registeredType), $"[StateMachine::AddState] Duplicate state type {registeredType}.");
+
+			var stateType = state.GetType();
+			if (registeredType.Name != stateType.Name && !stateType.GetInterfaces().Contains(registeredType))
+			{
+				Debug.LogWarning($"[StateMachine::AddState] {stateType.Name} doesn't inherit {registeredType.Name}.");
+				return;
+			}
+
+			_stateMap.Add(registeredType, state);
 		}
 
-		public void RemoveState<T>(IState state)
+		public void RemoveState<T>()
 		{
 			var type = typeof(T);
 			Assert.IsTrue(_stateMap.ContainsKey(type), $"[StateMachine::RemoveState] State is not in state machine {type}.");
@@ -80,7 +89,7 @@ namespace DesignPattern
 			_stateMap.Clear();
 		}
 
-		public void ChangeState<T>() where T : IState
+		public void ChangeState<T>() where T : class
 		{
 			if (_currentState != null)
 			{
@@ -91,7 +100,7 @@ namespace DesignPattern
 			var type = typeof(T);
 			Assert.IsTrue(CheckHasState<T>(), $"[StateMachine::ChangeState] State is not in state machine {type}.");
 
-			_currentState = GetState<T>();
+			_currentState = GetState<T>() as IState;
 			_currentState.OnEnter();
 		}
 	}
