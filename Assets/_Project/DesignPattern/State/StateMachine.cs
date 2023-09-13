@@ -89,16 +89,19 @@ namespace DesignPattern
 			_stateMap.Clear();
 		}
 
-		public void ChangeState<T>() where T : class
+		public void ChangeState<T>(bool isNotChangedSameState = true) where T : class
 		{
+			var type = typeof(T);
+			Assert.IsTrue(CheckHasState<T>(), $"[StateMachine::ChangeState] State is not in state machine {type}.");
+
+			if (isNotChangedSameState && _currentState != null && _currentState.GetType().Name == type.Name)
+				return;
+
 			if (_currentState != null)
 			{
 				_currentState.OnLeave();
 				_previousState = _currentState;
 			}
-
-			var type = typeof(T);
-			Assert.IsTrue(CheckHasState<T>(), $"[StateMachine::ChangeState] State is not in state machine {type}.");
 
 			_currentState = GetState<T>() as IState;
 			_currentState.OnEnter();
